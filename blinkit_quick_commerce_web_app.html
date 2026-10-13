@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blinkit - 10 Minute Grocery Delivery</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            blinkYellow: '#F8CB46',
+            blinkYellowDark: '#E4B832',
+            blinkGreen: '#0C831F',
+            blinkGreenDark: '#086317',
+            blinkGreenLight: '#E8F5E9',
+            brandDark: '#1C1C1C',
+            brandGray: '#666666',
+            gatewayNavy: '#0F1E36',
+            gatewayBlue: '#0C2340',
+            waGreen: '#25D366',
+            waDarkGreen: '#128C7E',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f8f9fa; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+    .pulse-badge { animation: pulseSoft 2s infinite ease-in-out; }
+
+    @keyframes spinFaster {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spin-fast { animation: spinFaster 0.8s linear infinite; }
+  </style>
+</head>
+
+<body class="bg-[#F4F6FB] text-brandDark font-sans antialiased min-h-screen flex flex-col selection:bg-blinkYellow selection:text-black">
+
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm transition-all duration-200">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20 gap-3 md:gap-6">
+        
+        <!-- Logo & Delivery Address -->
+        <div class="flex items-center space-x-3 sm:space-x-6 min-w-max">
+          <!-- Double click logo allows owner to access configuration modal safely -->
+          <button 
+            id="admin-logo-trigger" 
+            title="Blinkit Store (Owner tip: Double-click logo for Admin Settings)"
+            class="flex items-center group cursor-pointer focus:outline-none select-none text-left"
+          >
+            <span class="text-3xl sm:text-4xl font-black tracking-tight text-blinkYellow drop-shadow-sm">
+              blink<span class="text-blinkGreen">it</span>
+            </span>
+          </button>
+
+          <!-- Location Selector -->
+          <button id="location-btn" class="text-left hidden sm:flex flex-col justify-center px-3 py-1.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all cursor-pointer">
+            <div class="flex items-center gap-1 text-[13px] font-extrabold text-brandDark">
+              <span>Delivery in 10 minutes</span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500"></i>
+            </div>
+            <div class="text-[12px] text-gray-500 truncate max-w-[210px] flex items-center gap-1 font-medium">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-blinkGreen inline shrink-0"></i>
+              <span id="current-location-text">B-Block, Green Park, South Delhi</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Global Product Search -->
+        <div class="flex-1 max-w-2xl relative">
+          <div class="relative flex items-center">
+            <span class="absolute left-3.5 text-gray-400 pointer-events-none">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </span>
+            <input 
+              type="text" 
+              id="search-input" 
+              placeholder='Search "milk", "lays", "maggi", "coke", "atta"...'
+              class="w-full pl-11 pr-10 py-2.5 sm:py-3 bg-gray-100/90 hover:bg-gray-100 focus:bg-white text-sm font-medium rounded-xl border border-transparent focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blinkGreen/20 transition-all placeholder-gray-400"
+              autocomplete="off"
+            >
+            <button id="clear-search-btn" class="hidden absolute right-3 text-gray-400 hover:text-gray-600 p-1">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <!-- Instant Search Auto-complete -->
+          <div id="search-dropdown" class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden max-h-80 overflow-y-auto"></div>
+        </div>
+
+        <!-- Right Side: Cart Trigger (Owner alerts icon removed from customer view) -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Floating Cart Button -->
+          <button 
+            id="open-cart-btn" 
+            class="relative flex items-center gap-2.5 bg-blinkGreen hover:bg-blinkGreenDark text-white font-bold px-3.5 sm:px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-150 transform active:scale-95 cursor-pointer"
+          >
+            <div class="relative">
+              <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+              <span id="header-cart-count" class="hidden absolute -top-2 -right-2 bg-blinkYellow text-black text-[11px] font-black w-4 h-4 rounded-full flex items-center justify-center">0</span>
+            </div>
+            <div class="text-left hidden sm:block">
+              <div id="cart-btn-subtext" class="text-[10px] uppercase font-bold text-green-200 leading-none">My Cart</div>
+              <div id="cart-btn-price" class="text-sm font-extrabold leading-none mt-1">₹0</div>
+            </div>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Mobile Sub-bar: Location -->
+      <div class="sm:hidden pb-2.5 flex items-center justify-between text-xs text-gray-600 border-t border-gray-50 pt-2 gap-2">
+        <div class="flex items-center gap-1.5 truncate">
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-blinkYellow/30 text-amber-900">10 MINS</span>
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-blinkGreen shrink-0"></i>
+          <span id="mobile-location-text" class="truncate font-semibold text-gray-700">Green Park, South Delhi</span>
+        </div>
+        <button id="mobile-location-trigger" class="text-blinkGreen font-bold text-xs shrink-0">Change</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Promo Announcement Banner -->
+  <section class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-4">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-800 via-blinkGreen to-teal-800 text-white shadow-md">
+      <div class="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
+        <i data-lucide="clock" class="w-64 h-64"></i>
+      </div>
+      <div class="px-5 py-5 sm:px-8 sm:py-6 flex flex-col md:flex-row md:items-center justify-between relative z-10 gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blinkYellow text-black rounded-full font-black text-xs uppercase tracking-wider mb-2 pulse-badge shadow-sm">
+            <i data-lucide="zap" class="w-3.5 h-3.5 fill-black"></i> 10 Minute Guaranteed Delivery
+          </div>
+          <h1 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">Superfast Grocery & Essentials Delivery</h1>
+          <p class="text-xs sm:text-sm text-emerald-100 font-medium mt-1">Packed fresh from our nearest dark store hub to your door in minutes.</p>
+        </div>
+        
+        <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20 self-start md:self-auto">
+          <i data-lucide="badge-percent" class="w-7 h-7 text-blinkYellow"></i>
+          <div>
+            <div class="text-[11px] text-white/80 font-bold uppercase">Special Offer</div>
+            <div class="text-sm font-black text-blinkYellow">Coupon: BLINK10 <span class="text-xs text-white font-normal">(Flat ₹50 OFF)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories Filter -->
+  <nav class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-6">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+        <span>Explore Categories</span>
+        <span class="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full" id="items-count-indicator">18 items</span>
+      </h2>
+    </div>
+    <div id="category-pills" class="flex gap-2.5 overflow-x-auto pb-2 hide-scrollbar scroll-smooth"></div>
+  </nav>
+
+  <!-- Main Product Catalog Grid -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-4 mb-20 flex-1">
+    <div id="filter-state-bar" class="hidden mb-4 items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-gray-100 shadow-sm text-sm">
+      <span class="text-gray-600 font-medium" id="filter-query-text">Showing search results</span>
+      <button id="reset-filter-btn" class="text-xs font-bold text-blinkGreen hover:underline">Clear Filter</button>
+    </div>
+
+    <!-- Products Grid -->
+    <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4"></div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden py-16 text-center">
+      <div class="inline-flex p-5 rounded-full bg-yellow-50 text-blinkYellowDark mb-4">
+        <i data-lucide="package-search" class="w-12 h-12"></i>
+      </div>
+      <h3 class="text-lg font-bold text-gray-800">No products found</h3>
+      <p class="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Try searching for "milk", "maggi", "banana", "chips", or "tomato".</p>
+      <button id="empty-state-reset" class="mt-4 px-4 py-2 bg-blinkGreen text-white text-xs font-bold rounded-xl hover:bg-blinkGreenDark transition-colors">
+        Reset & View All
+      </button>
+    </div>
+  </main>
+
+  <!-- Slide-out Shopping Cart Drawer -->
+  <div id="cart-drawer-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+  <aside id="cart-drawer" class="fixed top-0 right-0 h-full w-full sm:w-[440px] bg-[#F7F9FC] z-50 transform translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+    
+    <!-- Drawer Header -->
+    <div class="p-4 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm">
+      <div class="flex items-center gap-2">
+        <h3 class="font-black text-lg text-gray-900">My Cart</h3>
+        <span id="drawer-item-count-badge" class="text-xs font-bold px-2 py-0.5 bg-green-50 text-blinkGreen rounded-full">0 items</span>
+      </div>
+      <button id="close-cart-btn" class="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Express Delivery Bar -->
+    <div class="bg-amber-50 px-4 py-2.5 border-b border-amber-100/80 flex items-center justify-between text-xs text-amber-900 font-medium">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-full bg-blinkYellow text-black flex items-center justify-center font-black">
+          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+        </div>
+        <span>Delivery in <b>10-12 mins</b></span>
+      </div>
+      <span class="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full">Superfast</span>
+    </div>
+
+    <!-- Free Delivery Progress Tracker -->
+    <div class="bg-white px-4 py-2 border-b border-gray-100 text-xs">
+      <div class="flex justify-between items-center mb-1">
+        <span id="free-delivery-text" class="font-semibold text-gray-600">Add ₹199 more for FREE delivery</span>
+        <span class="font-bold text-blinkGreen text-[11px]">Threshold: ₹199</span>
+      </div>
+      <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+        <div id="free-delivery-bar" class="bg-blinkGreen h-full w-0 transition-all duration-300"></div>
+      </div>
+    </div>
+
+    <!-- Cart Products List & Customer Details Form -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      <!-- Items Container -->
+      <div id="cart-items-container" class="space-y-2.5"></div>
+
+      <!-- Customer Details Section -->
+      <div id="customer-info-box" class="bg-white rounded-2xl p-3.5 border border-gray-200/80 shadow-sm space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+            <i data-lucide="user-check" class="w-4 h-4 text-blinkGreen"></i>
+            <span>Delivery & Customer Details</span>
+          </h4>
+          <span class="text-[10px] bg-emerald-50 text-blinkGreen font-bold px-1.5 py-0.5 rounded">Required</span>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div>
+            <label class="block text-[11px] font-bold text-gray-600 mb-0.5">Customer Name <span class="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              id="cust-name-input" 
+              placeholder="Enter your full name" 
+              class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-blinkGreen focus:outline-none font-medium"
+              value=""
+            >
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold text-gray-600 mb-0.5">WhatsApp / Phone <span class="text-rose-500">*</span></label>
+              <input 
+                type="tel" 
+                id="cust-phone-input" 
+                maxlength="10"
+                placeholder="10-digit number" 
+                class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-blinkGreen focus:outline-none font-medium"
+                value=""
+              >
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-gray-600 mb-0.5">Email Address</label>
+              <input 
+                type="email" 
+                id="cust-email-input" 
+                placeholder="name@email.com" 
+                class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-blinkGreen focus:outline-none font-medium"
+                value=""
+              >
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-gray-600 mb-0.5">Delivery Address & Landmark <span class="text-rose-500">*</span></label>
+            <textarea 
+              id="cust-address-input" 
+              rows="2"
+              placeholder="House/Flat No., Street, Landmark"
+              class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-blinkGreen focus:outline-none font-medium text-xs resize-none"
+            ></textarea>
+          </div>
+          <div id="cust-form-error" class="hidden text-[11px] text-rose-600 font-bold bg-rose-50 p-2 rounded-lg border border-rose-100 flex items-center gap-1.5">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5 shrink-0"></i>
+            <span id="cust-form-error-text">Please fill in your Name, 10-digit Phone, and Delivery Address.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bill Summary & Proceed to Pay -->
+    <div class="bg-white border-t border-gray-100 p-4 shadow-xl space-y-3">
+      
+      <!-- Coupon Code Box -->
+      <div class="flex gap-2">
+        <input 
+          type="text" 
+          id="coupon-input" 
+          placeholder="Apply 'BLINK10'" 
+          class="flex-1 uppercase text-xs font-bold tracking-wider px-3 py-2 border border-gray-200 rounded-xl focus:border-blinkGreen focus:outline-none"
+        >
+        <button id="apply-coupon-btn" class="px-4 py-2 bg-gray-900 hover:bg-black text-white font-bold text-xs rounded-xl transition-colors cursor-pointer">
+          Apply
+        </button>
+      </div>
+      <div id="coupon-status" class="hidden text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
+        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+        <span>Coupon BLINK10 applied! You saved ₹50</span>
+      </div>
+
+      <!-- Bill Breakdown -->
+      <div class="bg-gray-50 rounded-2xl p-3 space-y-1.5 text-xs text-gray-600 font-medium border border-gray-100">
+        <div class="flex justify-between">
+          <span>Items Total</span>
+          <span id="bill-subtotal" class="font-bold text-gray-900">₹0</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Delivery Partner Fee</span>
+          <span id="bill-delivery-fee" class="font-bold text-gray-900">₹25</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Handling & Packaging</span>
+          <span class="font-bold text-gray-900">₹4</span>
+        </div>
+        <div id="bill-discount-row" class="hidden flex justify-between text-emerald-600 font-bold">
+          <span>Coupon Discount</span>
+          <span id="bill-discount-val">-₹50</span>
+        </div>
+        <div class="border-t border-gray-200 pt-2 flex justify-between text-sm font-black text-gray-900">
+          <span>To Pay</span>
+          <span id="bill-grand-total" class="text-base text-blinkGreen font-black">₹0</span>
+        </div>
+      </div>
+
+      <!-- Proceed to Pay Button (Triggers Gateway) -->
+      <button 
+        id="proceed-pay-btn" 
+        class="w-full py-3.5 bg-blinkGreen hover:bg-blinkGreenDark text-white font-extrabold rounded-xl flex items-center justify-between px-5 shadow-lg shadow-blinkGreen/20 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+      >
+        <div class="text-left">
+          <div id="checkout-btn-price" class="text-base font-black">₹0</div>
+          <div class="text-[10px] text-green-100 font-bold uppercase tracking-wider">Total Payable</div>
+        </div>
+        <div class="flex items-center gap-1.5 text-sm font-bold">
+          <span>Proceed to Pay</span>
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+        </div>
+      </button>
+
+    </div>
+  </aside>
+
+  <!-- PIN PROMPT MODAL FOR STORE OWNER ACCESS -->
+  <div id="admin-pin-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
+      <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto">
+        <i data-lucide="lock" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h4 class="font-black text-base text-gray-900">Store Owner Access</h4>
+        <p class="text-xs text-gray-500 mt-1">Enter Master PIN to manage store dispatch numbers (Default: <b>0000</b>)</p>
+      </div>
+
+      <div>
+        <input 
+          type="password" 
+          id="admin-pin-input" 
+          maxlength="6" 
+          placeholder="••••" 
+          class="w-36 mx-auto text-center tracking-[8px] text-xl font-black py-2.5 border-2 border-gray-300 focus:border-blinkGreen rounded-xl focus:outline-none"
+        >
+        <div id="pin-error-msg" class="hidden text-[11px] text-rose-600 font-bold mt-1.5">Incorrect PIN! Try again.</div>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="cancel-pin-btn" class="w-1/2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer">
+          Cancel
+        </button>
+        <button id="verify-pin-btn" class="w-1/2 py-2.5 bg-blinkGreen hover:bg-blinkGreenDark text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer">
+          Unlock
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STORE OWNER SECRETS & WHATSAPP CONFIG MODAL (ACCESSED ONLY BY OWNER PIN) -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-blinkYellow text-black flex items-center justify-center font-black">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="font-extrabold text-base text-gray-900">Dark Store WhatsApp Settings</h4>
+            <p class="text-xs text-gray-500">Configure phone & email for order alerts</p>
+          </div>
+        </div>
+        <button id="close-settings-btn" class="p-1.5 text-gray-400 hover:text-gray-700 rounded-full transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-gray-700 mb-1">Store Owner WhatsApp Number (with country code)</label>
+          <input 
+            type="text" 
+            id="owner-phone-input" 
+            placeholder="e.g. 919876543210" 
+            class="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:border-blinkGreen focus:outline-none font-semibold text-gray-800"
+          >
+          <span class="text-[10px] text-gray-400 mt-0.5 block">Format: 91 followed by 10-digit number without + or spaces</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-gray-700 mb-1">Notification Email Address</label>
+          <input 
+            type="email" 
+            id="owner-email-input" 
+            placeholder="e.g. store@blinkit.com" 
+            class="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:border-blinkGreen focus:outline-none font-semibold text-gray-800"
+          >
+        </div>
+
+        <div>
+          <label class="block font-bold text-gray-700 mb-1">Store Manager Admin PIN</label>
+          <input 
+            type="text" 
+            id="owner-pin-input" 
+            placeholder="0000" 
+            maxlength="6"
+            class="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:border-blinkGreen focus:outline-none font-semibold text-gray-800"
+          >
+          <span class="text-[10px] text-gray-400 mt-0.5 block">Default PIN is 0000 (update here if desired)</span>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button id="save-settings-btn" class="w-full py-2.5 bg-blinkGreen hover:bg-blinkGreenDark text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer">
+          Save Configuration
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REALISTIC PAYMENT GATEWAY MODAL -->
+  <div id="payment-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Gateway Branding Header -->
+      <div class="bg-gradient-to-r from-gatewayNavy to-gatewayBlue px-5 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blinkYellow text-black font-black flex items-center justify-center text-lg shadow-sm">
+            b<span class="text-blinkGreen">!</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase text-gray-300 tracking-wider">Blinkit Express Checkout</span>
+              <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-black px-1.5 py-0.5 rounded border border-emerald-400/30">256-bit Secure</span>
+            </div>
+            <div class="text-sm font-black text-white flex items-center gap-1">
+              <span>Amount:</span>
+              <span class="text-blinkYellow text-base" id="gateway-total-amount">₹0</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="close-gateway-btn" class="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Test simulation toggle (Pass / Fail trigger) -->
+      <div class="bg-amber-50 px-4 py-2 border-b border-amber-200 flex items-center justify-between text-xs text-amber-900 font-semibold">
+        <div class="flex items-center gap-1.5">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-amber-600"></i>
+          <span>Simulate Outcome:</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="payment_sim_result" value="success" checked class="accent-blinkGreen">
+            <span class="text-emerald-800 font-bold">Success</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="payment_sim_result" value="failure" class="accent-rose-600">
+            <span class="text-rose-700 font-bold">Failure / Decline</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Main Gateway Body with Payment Tabs -->
+      <div class="flex flex-col sm:flex-row flex-1 overflow-hidden">
+        
+        <!-- Payment Methods Nav Sidebar -->
+        <div class="w-full sm:w-48 bg-gray-50 border-b sm:border-b-0 sm:border-r border-gray-200 p-2 sm:p-3 flex sm:flex-col gap-1 overflow-x-auto shrink-0">
+          
+          <button onclick="switchPaymentTab('upi')" class="payment-tab-btn active w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all bg-white text-gray-900 shadow-sm border border-gray-200 cursor-pointer" data-tab="upi">
+            <i data-lucide="smartphone" class="w-4 h-4 text-blinkGreen"></i>
+            <span class="truncate">UPI & QR</span>
+          </button>
+
+          <button onclick="switchPaymentTab('cards')" class="payment-tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all text-gray-600 hover:bg-white/60 hover:text-gray-900 cursor-pointer" data-tab="cards">
+            <i data-lucide="credit-card" class="w-4 h-4 text-blue-600"></i>
+            <span class="truncate">Debit / Credit Card</span>
+          </button>
+
+          <button onclick="switchPaymentTab('netbanking')" class="payment-tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all text-gray-600 hover:bg-white/60 hover:text-gray-900 cursor-pointer" data-tab="netbanking">
+            <i data-lucide="landmark" class="w-4 h-4 text-indigo-600"></i>
+            <span class="truncate">Net Banking</span>
+          </button>
+
+          <button onclick="switchPaymentTab('wallets')" class="payment-tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all text-gray-600 hover:bg-white/60 hover:text-gray-900 cursor-pointer" data-tab="wallets">
+            <i data-lucide="wallet" class="w-4 h-4 text-amber-600"></i>
+            <span class="truncate">Wallets</span>
+          </button>
+
+          <button onclick="switchPaymentTab('cod')" class="payment-tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all text-gray-600 hover:bg-white/60 hover:text-gray-900 cursor-pointer" data-tab="cod">
+            <i data-lucide="banknote" class="w-4 h-4 text-emerald-600"></i>
+            <span class="truncate">Cash on Delivery</span>
+          </button>
+
+        </div>
+
+        <!-- Tab Contents Panes -->
+        <div class="flex-1 p-4 sm:p-5 overflow-y-auto">
+          
+          <!-- TAB 1: UPI & QR -->
+          <div id="tab-content-upi" class="tab-pane space-y-4">
+            <div>
+              <h4 class="text-sm font-black text-gray-900">Instant UPI Payment</h4>
+              <p class="text-xs text-gray-500">Pay using installed apps or scan dynamic QR</p>
+            </div>
+
+            <!-- Instant UPI Apps -->
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="selectUpiApp('Google Pay')" class="upi-app-option p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/40 text-center transition-all flex flex-col items-center gap-1 active:scale-95 cursor-pointer">
+                <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs">GPay</div>
+                <span class="text-[11px] font-bold text-gray-800">Google Pay</span>
+              </button>
+
+              <button onclick="selectUpiApp('PhonePe')" class="upi-app-option p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/40 text-center transition-all flex flex-col items-center gap-1 active:scale-95 cursor-pointer">
+                <div class="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-black text-xs">PhPe</div>
+                <span class="text-[11px] font-bold text-gray-800">PhonePe</span>
+              </button>
+
+              <button onclick="selectUpiApp('Paytm UPI')" class="upi-app-option p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/40 text-center transition-all flex flex-col items-center gap-1 active:scale-95 cursor-pointer">
+                <div class="w-8 h-8 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center font-black text-xs">Paytm</div>
+                <span class="text-[11px] font-bold text-gray-800">Paytm</span>
+              </button>
+            </div>
+
+            <!-- UPI ID Input Field -->
+            <div class="space-y-1.5 pt-1">
+              <label class="text-xs font-bold text-gray-700">Or enter UPI ID / VPA</label>
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  id="vpa-input" 
+                  placeholder="e.g. yourname@oksbi" 
+                  class="flex-1 text-xs font-semibold px-3 py-2.5 rounded-xl border border-gray-300 focus:border-blinkGreen focus:outline-none"
+                  value="customer@okaxis"
+                >
+                <button onclick="verifyAndPayUpi()" class="px-4 py-2.5 bg-blinkGreen hover:bg-blinkGreenDark text-white text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                  Verify & Pay
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic QR Code Mock -->
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex items-center gap-3">
+              <div class="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 100 100" class="w-full h-full text-gray-900 fill-current">
+                  <path d="M0,0 h30 v30 h-30 z M10,10 h10 v10 h-10 z M70,0 h30 v30 h-30 z M80,10 h10 v10 h-10 z M0,70 h30 v30 h-30 z M10,80 h10 v10 h-10 z M40,10 h20 v10 h-20 z M40,40 h20 v20 h-20 z M70,50 h10 v20 h-10 z M50,70 h20 v10 h-20 z M70,80 h30 v20 h-30 z M80,90 h10 v10 h-10 z M10,40 h20 v10 h-20 z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-gray-900">Scan QR & Pay instantly</div>
+                <div class="text-[11px] text-gray-500">Scan with any UPI app on your phone to authorize.</div>
+                <button onclick="startPaymentProcessing('QR Code Scan')" class="text-xs text-blinkGreen font-extrabold hover:underline mt-1 cursor-pointer">
+                  Simulate QR Payment →
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 2: CREDIT / DEBIT CARDS -->
+          <div id="tab-content-cards" class="tab-pane hidden space-y-3">
+            <div>
+              <h4 class="text-sm font-black text-gray-900">Card Payment</h4>
+              <p class="text-xs text-gray-500">All major Indian credit & debit cards accepted</p>
+            </div>
+
+            <div class="space-y-2.5">
+              <div>
+                <label class="block text-[11px] font-bold text-gray-700 mb-1">Card Number</label>
+                <div class="relative">
+                  <input 
+                    type="text" 
+                    id="card-number-input" 
+                    maxlength="19" 
+                    placeholder="4532 •••• •••• 8892" 
+                    class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-gray-300 focus:border-blinkGreen focus:outline-none tracking-widest pl-10"
+                    value="4532 8901 2345 6789"
+                  >
+                  <div class="absolute left-3 top-3 text-gray-400">
+                    <i data-lucide="credit-card" class="w-4 h-4"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[11px] font-bold text-gray-700 mb-1">Expiry Date</label>
+                  <input 
+                    type="text" 
+                    id="card-expiry-input" 
+                    maxlength="5" 
+                    placeholder="MM/YY" 
+                    class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-gray-300 focus:border-blinkGreen focus:outline-none text-center"
+                    value="08/29"
+                  >
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-gray-700 mb-1">CVV / CVC</label>
+                  <input 
+                    type="password" 
+                    id="card-cvv-input" 
+                    maxlength="4" 
+                    placeholder="•••" 
+                    class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-gray-300 focus:border-blinkGreen focus:outline-none text-center"
+                    value="892"
+                  >
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-gray-700 mb-1">Name on Card</label>
+                <input 
+                  type="text" 
+                  id="card-name-input" 
+                  placeholder="e.g. Rahul Sharma" 
+                  class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-gray-300 focus:border-blinkGreen focus:outline-none"
+                  value="Rahul Sharma"
+                >
+              </div>
+
+              <div class="pt-2">
+                <button onclick="submitCardPayment()" class="w-full py-3 bg-blinkGreen hover:bg-blinkGreenDark text-white text-xs font-black rounded-xl transition-all shadow-md active:scale-[0.98] cursor-pointer">
+                  Pay <span class="card-btn-amount">₹0</span> via 3D Secure
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: NET BANKING -->
+          <div id="tab-content-netbanking" class="tab-pane hidden space-y-3">
+            <div>
+              <h4 class="text-sm font-black text-gray-900">Net Banking</h4>
+              <p class="text-xs text-gray-500">Select your bank to authenticate through your portal</p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <button onclick="startPaymentProcessing('HDFC Bank Net Banking')" class="p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 text-left font-bold text-xs flex items-center gap-2 cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-blue-800 text-white flex items-center justify-center text-[10px] font-black">H</span>
+                <span>HDFC Bank</span>
+              </button>
+
+              <button onclick="startPaymentProcessing('ICICI Bank Net Banking')" class="p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 text-left font-bold text-xs flex items-center gap-2 cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-orange-600 text-white flex items-center justify-center text-[10px] font-black">I</span>
+                <span>ICICI Bank</span>
+              </button>
+
+              <button onclick="startPaymentProcessing('SBI Net Banking')" class="p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 text-left font-bold text-xs flex items-center gap-2 cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-sky-600 text-white flex items-center justify-center text-[10px] font-black">S</span>
+                <span>SBI</span>
+              </button>
+
+              <button onclick="startPaymentProcessing('Axis Bank Net Banking')" class="p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 text-left font-bold text-xs flex items-center gap-2 cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-rose-800 text-white flex items-center justify-center text-[10px] font-black">A</span>
+                <span>Axis Bank</span>
+              </button>
+
+              <button onclick="startPaymentProcessing('Kotak Bank Net Banking')" class="p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 text-left font-bold text-xs flex items-center gap-2 cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-red-600 text-white flex items-center justify-center text-[10px] font-black">K</span>
+                <span>Kotak</span>
+              </button>
+
+              <button onclick="startPaymentProcessing('Punjab National Bank')" class="p-2.5 rounded-xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 text-left font-bold text-xs flex items-center gap-2 cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-amber-700 text-white flex items-center justify-center text-[10px] font-black">P</span>
+                <span>PNB</span>
+              </button>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-gray-700 mb-1">Or choose other bank</label>
+              <select id="other-banks-select" class="w-full text-xs font-semibold p-2.5 rounded-xl border border-gray-300 focus:border-blinkGreen focus:outline-none">
+                <option value="">-- Select Bank --</option>
+                <option value="Bank of Baroda">Bank of Baroda</option>
+                <option value="Canara Bank">Canara Bank</option>
+                <option value="Union Bank of India">Union Bank of India</option>
+                <option value="IndusInd Bank">IndusInd Bank</option>
+                <option value="Yes Bank">Yes Bank</option>
+              </select>
+            </div>
+
+            <button onclick="payWithSelectedBank()" class="w-full py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-black rounded-xl transition-all cursor-pointer">
+              Proceed to Bank Portal
+            </button>
+          </div>
+
+          <!-- TAB 4: WALLETS -->
+          <div id="tab-content-wallets" class="tab-pane hidden space-y-3">
+            <div>
+              <h4 class="text-sm font-black text-gray-900">Digital Wallets</h4>
+              <p class="text-xs text-gray-500">Pay using linked wallet balance</p>
+            </div>
+
+            <div class="space-y-2">
+              <button onclick="startPaymentProcessing('Paytm Wallet')" class="w-full p-3 rounded-2xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 flex items-center justify-between text-left transition-colors cursor-pointer">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">P</div>
+                  <div>
+                    <div class="text-xs font-bold text-gray-900">Paytm Wallet</div>
+                    <div class="text-[10px] text-gray-500">Linked Balance: ₹1,450.00</div>
+                  </div>
+                </div>
+                <span class="text-xs font-bold text-blinkGreen">Pay Now</span>
+              </button>
+
+              <button onclick="startPaymentProcessing('Amazon Pay')" class="w-full p-3 rounded-2xl border border-gray-200 hover:border-blinkGreen hover:bg-green-50/30 flex items-center justify-between text-left transition-colors cursor-pointer">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">A</div>
+                  <div>
+                    <div class="text-xs font-bold text-gray-900">Amazon Pay</div>
+                    <div class="text-[10px] text-gray-500">Instant cashback eligible</div>
+                  </div>
+                </div>
+                <span class="text-xs font-bold text-blinkGreen">Pay Now</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 5: CASH ON DELIVERY (COD) -->
+          <div id="tab-content-cod" class="tab-pane hidden space-y-3">
+            <div>
+              <h4 class="text-sm font-black text-gray-900">Cash / UPI on Delivery</h4>
+              <p class="text-xs text-gray-500">Pay at your doorstep via Cash or QR code on rider's phone</p>
+            </div>
+
+            <div class="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-900 space-y-2">
+              <div class="flex items-center gap-2 font-bold text-emerald-950">
+                <i data-lucide="check-circle" class="w-4 h-4 text-blinkGreen"></i>
+                <span>No advance payment required</span>
+              </div>
+              <p class="text-[11px] text-emerald-800 leading-relaxed">
+                Our delivery partner will carry change and an on-spot UPI QR code upon arrival.
+              </p>
+            </div>
+
+            <button onclick="confirmCodOrder()" class="w-full py-3 bg-blinkGreen hover:bg-blinkGreenDark text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer">
+              Confirm Order with Cash on Delivery
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Trust Footer -->
+      <div class="bg-gray-50 border-t border-gray-100 px-4 py-2 flex items-center justify-between text-[11px] text-gray-400">
+        <div class="flex items-center gap-2">
+          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+          <span>PCI-DSS Compliant • Bank Grade Encryption</span>
+        </div>
+        <span class="font-bold text-gray-500">Razorpay Verified</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3D SECURE OTP SIMULATION MODAL -->
+  <div id="otp-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 animate-in zoom-in-95">
+      <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+        <i data-lucide="shield-alert" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h4 class="font-extrabold text-base text-gray-900">Verified by Visa / RuPay</h4>
+        <p class="text-xs text-gray-500 mt-1">Enter the 6-digit one-time password (OTP) sent to your registered mobile ending in <b>•••8912</b></p>
+      </div>
+
+      <div class="py-2">
+        <input 
+          type="text" 
+          id="otp-input" 
+          maxlength="6" 
+          value="481920" 
+          class="w-48 mx-auto text-center tracking-[8px] text-xl font-black py-2.5 border-2 border-gray-300 focus:border-blinkGreen rounded-xl focus:outline-none"
+        >
+        <div class="text-[11px] text-gray-400 mt-2">Test OTP prefilled. Resend in 24s</div>
+      </div>
+
+      <div class="space-y-2">
+        <button id="submit-otp-btn" class="w-full py-2.5 bg-blinkGreen hover:bg-blinkGreenDark text-white font-extrabold text-xs rounded-xl shadow-md transition-colors cursor-pointer">
+          Submit OTP & Authorize
+        </button>
+        <button id="cancel-otp-btn" class="w-full py-2 text-gray-500 hover:text-gray-800 text-xs font-semibold cursor-pointer">
+          Cancel Transaction
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROCESSING SPINNER OVERLAY -->
+  <div id="processing-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 text-center shadow-2xl space-y-4">
+      <div class="w-16 h-16 rounded-full border-4 border-gray-100 border-t-blinkGreen mx-auto spin-fast"></div>
+      <div>
+        <h4 class="font-extrabold text-sm text-gray-900" id="processing-step-title">Securing Connection...</h4>
+        <p class="text-xs text-gray-500 mt-1" id="processing-step-sub">Please do not press back or refresh</p>
+      </div>
+      <div class="text-[11px] text-gray-400 font-mono" id="processing-auth-code">REF: BLK-PAY-09281</div>
+    </div>
+  </div>
+
+  <!-- PAYMENT FAILURE / RETRY MODAL -->
+  <div id="payment-failure-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 animate-in zoom-in-95">
+      <div class="w-14 h-14 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+        <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+      </div>
+      <div>
+        <h4 class="font-black text-lg text-gray-900">Payment Declined</h4>
+        <p class="text-xs text-gray-500 mt-1">Transaction could not be completed by your bank. Any deducted funds will reverse in 2 hours.</p>
+      </div>
+      <div class="bg-rose-50/70 p-3 rounded-xl text-left text-[11px] text-rose-900">
+        <div class="font-bold">Error Code: ERR_BANK_TIMEOUT_408</div>
+        <div>Simulated test failure triggered.</div>
+      </div>
+      <div class="space-y-2">
+        <button id="retry-payment-btn" class="w-full py-2.5 bg-blinkGreen hover:bg-blinkGreenDark text-white font-extrabold text-xs rounded-xl shadow-md transition-colors cursor-pointer">
+          Try Another Payment Method
+        </button>
+        <button id="close-failure-btn" class="w-full py-2 text-gray-500 text-xs font-semibold hover:text-gray-800 cursor-pointer">
+          Return to Cart
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POST-PAYMENT LIVE ORDER TRACKING & STORE DISPATCH LOCK MODAL -->
+  <div id="order-tracking-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200">
+      
+      <!-- Top Success Ribbon -->
+      <div class="bg-gradient-to-r from-blinkGreen to-emerald-700 p-5 text-white text-center relative">
+        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-2.5 shadow-inner">
+          <i data-lucide="check" class="w-7 h-7 text-white stroke-[3]"></i>
+        </div>
+        <h3 class="text-lg font-black tracking-tight">Payment Verified & Order Received!</h3>
+        <p class="text-xs text-green-100 font-medium mt-0.5">Order ID: <span id="confirmed-order-number" class="font-mono font-bold">#BLK-98214</span></p>
+      </div>
+
+      <!-- Tracking & WhatsApp Notification Hub -->
+      <div class="p-5 space-y-4 overflow-y-auto">
+        
+        <!-- STEP 1: MANDATORY STORE ALERT GATE (PRIVACY COMPLIANT: NO OWNER NUMBER SHOWN) -->
+        <div id="owner-alert-gate" class="rounded-2xl p-4 border-2 transition-all duration-300 bg-amber-50/90 border-amber-300 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-amber-950 flex items-center gap-1.5 uppercase tracking-wider">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600" id="gate-shield-icon"></i>
+              <span id="gate-header-title">Step 1: Dispatch Order to Store</span>
+            </span>
+            <span id="gate-badge" class="bg-amber-200 text-amber-900 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+              <i data-lucide="lock" class="w-3 h-3"></i> Action Required
+            </span>
+          </div>
+
+          <p id="gate-description" class="text-xs text-amber-900 font-medium leading-relaxed">
+            Please dispatch your verified invoice to the dark store team via WhatsApp to start packaging your items immediately. <b>Live rider tracking & personal receipt remain locked until sent.</b>
+          </p>
+
+          <!-- Store Dispatch Trigger Button (Private Generic Copy) -->
+          <div class="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                <i data-lucide="send" class="w-4 h-4 text-emerald-600"></i>
+                <span>Dispatch Order to Dark Store Team</span>
+              </div>
+              <div class="text-[11px] text-gray-500 mt-0.5">Dispatches verified invoice & GPS delivery instructions to store manager</div>
+            </div>
+            <button 
+              id="send-owner-wa-btn" 
+              class="px-4 py-2.5 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 shrink-0 active:scale-95 cursor-pointer ring-2 ring-emerald-400/50"
+            >
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span id="owner-wa-btn-text">Send Alert on WhatsApp</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: LOCKED ORDER PROGRESSION & CUSTOMER RECEIPT CONTAINER -->
+        <div id="locked-process-wrapper" class="space-y-4 relative transition-all duration-300 opacity-40 blur-[1.5px] pointer-events-none select-none">
+          
+          <!-- Locked Banner Overlay -->
+          <div id="lock-overlay-badge" class="bg-gray-900/90 text-white p-3 rounded-2xl flex items-center justify-between shadow-lg">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-amber-400 text-black flex items-center justify-center font-bold">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <div class="text-xs font-black">Live Tracking & Customer Bill Locked</div>
+                <div class="text-[10px] text-gray-300">Click "Send Alert on WhatsApp" above to unlock preparation</div>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider text-amber-300">Locked</span>
+          </div>
+
+          <!-- Customer WhatsApp Receipt Card -->
+          <div class="bg-white rounded-2xl p-4 border border-gray-200/90 shadow-sm space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                  <i data-lucide="receipt" class="w-4 h-4 text-blue-600"></i>
+                  <span>Customer WhatsApp Receipt & Bill</span>
+                </div>
+                <div class="text-[11px] text-gray-500 mt-0.5">Receive digital tax invoice on <b id="customer-phone-display">+91 9876543210</b></div>
+              </div>
+              <button 
+                id="send-customer-wa-btn" 
+                disabled
+                class="px-4 py-2 bg-gray-900 hover:bg-black text-white font-extrabold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                <span>Send to My WhatsApp</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Order ETA Card -->
+          <div class="bg-amber-50 rounded-2xl p-3.5 border border-amber-200/70 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="p-2.5 bg-blinkYellow text-black rounded-xl font-bold">
+                <i data-lucide="timer" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="text-[11px] font-bold text-gray-500 uppercase">Estimated Delivery</div>
+                <div class="text-base font-black text-gray-900" id="live-countdown-timer">Waiting for store alert...</div>
+              </div>
+            </div>
+            <span id="eta-status-badge" class="px-2.5 py-1 bg-gray-200 text-gray-600 font-extrabold text-[11px] rounded-full">Waiting</span>
+          </div>
+
+          <!-- 4-Stage Animated Delivery Pipeline -->
+          <div class="space-y-3 pl-1">
+            
+            <!-- Stage 1 -->
+            <div class="flex items-start gap-3">
+              <div class="flex flex-col items-center">
+                <div class="w-7 h-7 rounded-full bg-blinkGreen text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                  <i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>
+                </div>
+                <div class="w-0.5 h-5 bg-blinkGreen my-1"></div>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-gray-900">Order Placed & Payment Confirmed</div>
+                <div class="text-[11px] text-gray-500">Method: <span id="confirmed-pay-method" class="font-semibold text-gray-700">UPI</span> • Ref: <span id="success-payment-id" class="font-mono">pay_Ok98x12</span></div>
+              </div>
+            </div>
+
+            <!-- Stage 2 -->
+            <div class="flex items-start gap-3">
+              <div class="flex flex-col items-center">
+                <div id="track-step-pack-icon" class="w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs font-bold shadow-sm">
+                  <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                </div>
+                <div id="track-step-pack-line" class="w-0.5 h-5 bg-gray-200 my-1"></div>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-gray-400" id="track-step-pack-title">Items being packed at Darkstore</div>
+                <div class="text-[11px] text-gray-400" id="track-step-pack-sub">Picker awaiting store alert confirmation</div>
+              </div>
+            </div>
+
+            <!-- Stage 3 -->
+            <div class="flex items-start gap-3">
+              <div class="flex flex-col items-center">
+                <div id="track-step-rider-icon" class="w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs font-bold shadow-sm">
+                  <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+                </div>
+                <div id="track-step-rider-line" class="w-0.5 h-5 bg-gray-200 my-1"></div>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-gray-400" id="track-step-rider-title">Delivery partner assigned</div>
+                <div class="text-[11px] text-gray-400" id="track-step-rider-sub">Rider waiting at warehouse bay</div>
+              </div>
+            </div>
+
+            <!-- Stage 4 -->
+            <div class="flex items-start gap-3">
+              <div class="flex flex-col items-center">
+                <div id="track-step-dispatch-icon" class="w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs font-bold shadow-sm">
+                  <i data-lucide="bike" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs font-extrabold text-gray-400" id="track-step-dispatch-title">Out for delivery</div>
+                <div class="text-[11px] text-gray-400" id="track-step-dispatch-sub">Electric Scooter heading to your address</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Rider Profile Contact Snippet -->
+          <div id="rider-profile-snippet" class="hidden bg-gray-50 p-3 rounded-2xl border border-gray-100 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-full bg-blinkYellow text-black font-black flex items-center justify-center text-sm shadow-sm">
+                RM
+              </div>
+              <div>
+                <div class="text-xs font-bold text-gray-900">Ramesh Kumar (EV Partner)</div>
+                <div class="text-[10px] text-gray-500">⭐ 4.9 • Vaccinated • Insulated Bag</div>
+              </div>
+            </div>
+            <button class="p-2 bg-emerald-100 text-blinkGreen rounded-xl hover:bg-emerald-200 cursor-pointer">
+              <i data-lucide="phone-call" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Delivery destination reminder -->
+          <div class="bg-gray-50 p-3 rounded-xl text-xs text-gray-600 flex items-center gap-2">
+            <i data-lucide="map-pin" class="w-4 h-4 text-blinkGreen shrink-0"></i>
+            <span class="truncate">Delivering to: <b id="tracking-address-text">B-Block, Green Park, South Delhi</b></span>
+          </div>
+
+        </div>
+
+        <!-- Done & Browse Button -->
+        <div class="pt-2">
+          <button id="close-tracking-btn" class="w-full py-3 bg-gray-900 hover:bg-black text-white font-extrabold text-xs rounded-xl transition-all shadow-md cursor-pointer">
+            Close & Continue Browsing
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Location Selector Modal -->
+  <div id="location-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center">
+        <h4 class="font-extrabold text-base text-gray-900">Change Delivery Location</h4>
+        <button id="close-location-modal" class="p-1.5 text-gray-400 hover:text-gray-700 rounded-full cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-gray-500">Choose your address to browse dark stores delivering in under 10 minutes.</p>
+      
+      <div class="space-y-2.5">
+        <button class="location-choice w-full text-left p-3.5 rounded-2xl border-2 border-blinkGreen bg-emerald-50/50 flex items-start gap-3 transition-colors cursor-pointer" data-addr="B-Block, Green Park, South Delhi">
+          <i data-lucide="home" class="w-5 h-5 text-blinkGreen shrink-0 mt-0.5"></i>
+          <div>
+            <div class="text-xs font-bold text-gray-900">Home (South Delhi)</div>
+            <div class="text-xs text-gray-600">B-Block, Green Park, New Delhi - 110016</div>
+          </div>
+        </button>
+
+        <button class="location-choice w-full text-left p-3.5 rounded-2xl border border-gray-200 hover:border-blinkGreen hover:bg-gray-50 flex items-start gap-3 transition-colors cursor-pointer" data-addr="DLF Cyber City, Tower 10, Gurugram">
+          <i data-lucide="briefcase" class="w-5 h-5 text-gray-600 shrink-0 mt-0.5"></i>
+          <div>
+            <div class="text-xs font-bold text-gray-900">Office (Gurugram)</div>
+            <div class="text-xs text-gray-600">DLF Cyber City, Tower 10, Gurugram - 122002</div>
+          </div>
+        </button>
+
+        <button class="location-choice w-full text-left p-3.5 rounded-2xl border border-gray-200 hover:border-blinkGreen hover:bg-gray-50 flex items-start gap-3 transition-colors cursor-pointer" data-addr="Indiranagar 100ft Rd, Bengaluru">
+          <i data-lucide="map-pin" class="w-5 h-5 text-gray-600 shrink-0 mt-0.5"></i>
+          <div>
+            <div class="text-xs font-bold text-gray-900">Other (Bengaluru)</div>
+            <div class="text-xs text-gray-600">Indiranagar 100ft Rd, Bengaluru - 560038</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC & WHATSAPP GENERATION -->
+  <script>
+    // Product Catalog & Categories
+    const CATEGORIES = [
+      { id: 'all', name: 'All Essentials', icon: 'layout-grid' },
+      { id: 'dairy', name: 'Dairy & Milk', icon: 'cup-soda' },
+      { id: 'snacks', name: 'Munchies & Chips', icon: 'cookie' },
+      { id: 'beverages', name: 'Cold Drinks & Juices', icon: 'glass-water' },
+      { id: 'vegetables', name: 'Fresh Fruits & Veggies', icon: 'apple' },
+      { id: 'staples', name: 'Atta, Rice & Dal', icon: 'wheat' }
+    ];
+
+    const PRODUCTS = [
+      { id: 1, name: 'Amul Taaza Homogenised Toned Milk', price: 27, mrp: 30, unit: '500 ml', eta: '8 mins', category: 'dairy', badge: 'Bestseller', image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80' },
+      { id: 2, name: 'Mother Dairy Classic Curd / Dahi', price: 35, mrp: 35, unit: '400 g', eta: '9 mins', category: 'dairy', image: 'https://images.unsplash.com/photo-1588710929895-57351658e37e?auto=format&fit=crop&w=400&q=80' },
+      { id: 3, name: 'Lay\'s India\'s Magic Masala Potato Chips', price: 20, mrp: 20, unit: '50 g', eta: '7 mins', category: 'snacks', badge: 'Popular', image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=400&q=80' },
+      { id: 4, name: 'Maggi 2-Minute Instant Noodles', price: 14, mrp: 15, unit: '70 g', eta: '10 mins', category: 'snacks', image: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=400&q=80' },
+      { id: 5, name: 'Coca-Cola Soft Drink Original Taste', price: 40, mrp: 40, unit: '750 ml', eta: '10 mins', category: 'beverages', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&q=80' },
+      { id: 6, name: 'Fresh Hybrid Tomatoes', price: 28, mrp: 40, unit: '500 g', eta: '11 mins', category: 'vegetables', badge: 'Farm Fresh', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=400&q=80' },
+      { id: 7, name: 'Aashirvaad Superior MP Sharbati Atta', price: 215, mrp: 245, unit: '5 kg', eta: '12 mins', category: 'staples', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80' },
+      { id: 8, name: 'Fresh Yellow Bananas (Robusta)', price: 42, mrp: 55, unit: '1 kg (6-8 pcs)', eta: '8 mins', category: 'vegetables', image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=400&q=80' },
+      { id: 9, name: 'Tata Salt Vacuum Evaporated Iodised', price: 28, mrp: 28, unit: '1 kg', eta: '10 mins', category: 'staples', image: 'https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?auto=format&fit=crop&w=400&q=80' },
+      { id: 10, name: 'Red Bull Energy Drink Can', price: 125, mrp: 125, unit: '250 ml', eta: '9 mins', category: 'beverages', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=400&q=80' }
+    ];
+
+    // Global States
+    let cart = {}; 
+    let activeCategory = "all";
+    let searchQuery = "";
+    let couponDiscount = 0;
+    const DELIVERY_FEE = 25;
+    const FREE_DELIVERY_THRESHOLD = 199;
+    const HANDLING_FEE = 4;
+    let liveCountdownInterval = null;
+    let currentPayMethodPending = "";
+
+    // Owner Alert Lock State (CRITICAL MANDATE)
+    let isOwnerAlertDispatched = false;
+
+    // Store Owner Configuration Defaults (PIN is 0000)
+    let storeOwnerConfig = {
+      phone: "919876543210",
+      email: "owner@myblinkitstore.com",
+      adminPin: "0000"
+    };
+
+    // Stored completed order snapshot for WhatsApp dispatch
+    let lastOrderSnapshot = null;
+  </script>
+
+  <script>
+    function getFallbackImg(name) {
+      return `https://placehold.co/400x400/F8CB46/1C1C1C?text=${encodeURIComponent(name.slice(0, 15))}`;
+    }
+
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = cat.id === activeCategory;
+        const activeClasses = isActive 
+          ? "bg-blinkGreen text-white shadow-sm font-bold border-blinkGreen" 
+          : "bg-white text-gray-700 hover:bg-gray-100 font-semibold border-gray-200";
+
+        return `
+          <button 
+            onclick="setCategory('${cat.id}')"
+            class="px-4 py-2 rounded-xl text-xs sm:text-sm whitespace-nowrap border transition-all flex items-center gap-2 cursor-pointer ${activeClasses}"
+          >
+            <i data-lucide="${cat.icon}" class="w-4 h-4 ${isActive ? 'text-blinkYellow' : 'text-gray-500'}"></i>
+            <span>${cat.name}</span>
+          </button>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function getFilteredProducts() {
+      return PRODUCTS.filter(prod => {
+        const matchesCategory = activeCategory === "all" || prod.category === activeCategory;
+        const matchesSearch = searchQuery.trim() === "" || 
+          prod.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          prod.category.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById('products-grid');
+      const emptyState = document.getElementById('empty-state');
+      const itemsCountIndicator = document.getElementById('items-count-indicator');
+      const filterStateBar = document.getElementById('filter-state-bar');
+      const filterQueryText = document.getElementById('filter-query-text');
+
+      const items = getFilteredProducts();
+      itemsCountIndicator.innerText = `${items.length} items`;
+
+      if (searchQuery.trim()) {
+        filterStateBar.classList.remove('hidden');
+        filterStateBar.classList.add('flex');
+        filterQueryText.innerHTML = `Search results for "<b>${escapeHtml(searchQuery)}</b>" (${items.length} found)`;
+      } else {
+        filterStateBar.classList.add('hidden');
+        filterStateBar.classList.remove('flex');
+      }
+
+      if (items.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      grid.innerHTML = items.map(product => {
+        const qty = cart[product.id] || 0;
+        const discountPercent = Math.round(((product.mrp - product.price) / product.mrp) * 100);
+
+        return `
+          <div class="bg-white rounded-2xl p-2.5 sm:p-3.5 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-lg transition-all duration-200 flex flex-col justify-between group relative">
+            ${product.badge ? `
+              <span class="absolute top-2 left-2 z-10 bg-amber-500 text-white text-[9px] font-black tracking-wide uppercase px-1.5 py-0.5 rounded shadow-sm">
+                ${product.badge}
+              </span>
+            ` : ''}
+
+            <div class="relative w-full aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2.5 flex items-center justify-center">
+              <img 
+                src="${product.image}" 
+                alt="${product.name}" 
+                loading="lazy"
+                onerror="this.onerror=null; this.src='${getFallbackImg(product.name)}'" 
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute bottom-1.5 left-1.5 bg-white/95 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-black text-gray-700 flex items-center gap-1 shadow-sm">
+                <i data-lucide="clock" class="w-2.5 h-2.5 text-blinkGreen"></i>
+                <span>${product.eta}</span>
+              </div>
+            </div>
+
+            <div class="flex-1 flex flex-col">
+              <h4 class="text-xs sm:text-sm font-bold text-gray-800 line-clamp-2 leading-snug group-hover:text-blinkGreen transition-colors" title="${product.name}">
+                ${product.name}
+              </h4>
+              <p class="text-[11px] sm:text-xs text-gray-400 mt-0.5 font-medium">${product.unit}</p>
+
+              <div class="mt-3 pt-2 border-t border-gray-50 flex items-center justify-between gap-1">
+                <div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-xs sm:text-sm font-extrabold text-gray-900">₹${product.price}</span>
+                    ${product.mrp > product.price ? `
+                      <span class="text-[10px] text-gray-400 line-through">₹${product.mrp}</span>
+                    ` : ''}
+                  </div>
+                  ${discountPercent > 0 ? `
+                    <span class="text-[10px] font-bold text-blinkGreen">${discountPercent}% OFF</span>
+                  ` : ''}
+                </div>
+
+                <div class="shrink-0">
+                  ${qty === 0 ? `
+                    <button 
+                      onclick="addToCart(${product.id})"
+                      class="px-3.5 py-1.5 bg-green-50 hover:bg-blinkGreen text-blinkGreen hover:text-white border border-blinkGreen rounded-lg text-xs font-black transition-all duration-150 transform active:scale-95 shadow-sm cursor-pointer"
+                    >
+                      ADD
+                    </button>
+                  ` : `
+                    <div class="flex items-center bg-blinkGreen text-white rounded-lg shadow-sm font-bold text-xs overflow-hidden">
+                      <button 
+                        onclick="decrementItem(${product.id})" 
+                        class="px-2 py-1.5 hover:bg-blinkGreenDark transition-colors active:scale-90 cursor-pointer"
+                      >
+                        <i data-lucide="minus" class="w-3 h-3"></i>
+                      </button>
+                      <span class="px-2 font-black text-xs min-w-[18px] text-center">${qty}</span>
+                      <button 
+                        onclick="incrementItem(${product.id})" 
+                        class="px-2 py-1.5 hover:bg-blinkGreenDark transition-colors active:scale-90 cursor-pointer"
+                      >
+                        <i data-lucide="plus" class="w-3 h-3"></i>
+                      </button>
+                    </div>
+                  `}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function escapeHtml(string) {
+      return String(string).replace(/[&<>"'`=\/]/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
+      }[s]));
+    }
+  </script>
+
+  <script>
+    function addToCart(productId) {
+      cart[productId] = 1;
+      updateCartUI();
+      renderProducts();
+    }
+
+    function incrementItem(productId) {
+      cart[productId] = (cart[productId] || 0) + 1;
+      updateCartUI();
+      renderProducts();
+    }
+
+    function decrementItem(productId) {
+      if (!cart[productId]) return;
+      cart[productId] -= 1;
+      if (cart[productId] <= 0) {
+        delete cart[productId];
+      }
+      updateCartUI();
+      renderProducts();
+    }
+
+    function calculateGrandTotal() {
+      const totalCount = Object.values(cart).reduce((a, b) => a + b, 0);
+      let subtotal = 0;
+      Object.keys(cart).forEach(id => {
+        const prod = PRODUCTS.find(p => p.id === parseInt(id));
+        if (prod) subtotal += prod.price * cart[id];
+      });
+
+      const isFreeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD;
+      const deliveryFee = (totalCount > 0 && !isFreeDelivery) ? DELIVERY_FEE : 0;
+      const activeDiscount = (couponDiscount > 0 && subtotal > 0) ? Math.min(couponDiscount, subtotal) : 0;
+      const grandTotal = totalCount > 0 ? Math.max(0, subtotal + deliveryFee + HANDLING_FEE - activeDiscount) : 0;
+
+      return { totalCount, subtotal, deliveryFee, isFreeDelivery, activeDiscount, grandTotal };
+    }
+
+    function updateCartUI() {
+      const { totalCount, subtotal, deliveryFee, isFreeDelivery, activeDiscount, grandTotal } = calculateGrandTotal();
+
+      // Free Delivery Progress
+      const freeDeliveryBar = document.getElementById('free-delivery-bar');
+      const freeDeliveryText = document.getElementById('free-delivery-text');
+      const progressPercent = Math.min(100, (subtotal / FREE_DELIVERY_THRESHOLD) * 100);
+      freeDeliveryBar.style.width = `${progressPercent}%`;
+
+      if (totalCount > 0) {
+        if (isFreeDelivery) {
+          freeDeliveryText.innerHTML = '<span class="text-blinkGreen font-bold">🎉 FREE Delivery Unlocked!</span>';
+        } else {
+          const diff = FREE_DELIVERY_THRESHOLD - subtotal;
+          freeDeliveryText.innerHTML = `Add <b>₹${diff}</b> more for <span class="text-blinkGreen font-bold">FREE Delivery</span>`;
+        }
+      } else {
+        freeDeliveryText.innerText = `Add ₹${FREE_DELIVERY_THRESHOLD} more for FREE delivery`;
+      }
+
+      // Header Button
+      const headerCartCount = document.getElementById('header-cart-count');
+      const cartBtnPrice = document.getElementById('cart-btn-price');
+      const cartBtnSubtext = document.getElementById('cart-btn-subtext');
+
+      if (totalCount > 0) {
+        headerCartCount.innerText = totalCount;
+        headerCartCount.classList.remove('hidden');
+        cartBtnPrice.innerText = `₹${grandTotal}`;
+        cartBtnSubtext.innerText = `${totalCount} ${totalCount === 1 ? 'Item' : 'Items'}`;
+      } else {
+        headerCartCount.classList.add('hidden');
+        cartBtnPrice.innerText = `₹0`;
+        cartBtnSubtext.innerText = 'My Cart';
+      }
+
+      // Bill Drawer
+      document.getElementById('drawer-item-count-badge').innerText = `${totalCount} items`;
+      document.getElementById('bill-subtotal').innerText = `₹${subtotal}`;
+      document.getElementById('bill-delivery-fee').innerHTML = deliveryFee === 0 && subtotal > 0 ? '<span class="text-blinkGreen font-bold line-through text-gray-400 mr-1">₹25</span>FREE' : `₹${deliveryFee}`;
+      document.getElementById('bill-grand-total').innerText = `₹${grandTotal}`;
+      document.getElementById('checkout-btn-price').innerText = `₹${grandTotal}`;
+
+      // Update in Gateway & Card Pay Buttons
+      document.getElementById('gateway-total-amount').innerText = `₹${grandTotal}`;
+      document.querySelectorAll('.card-btn-amount').forEach(el => el.innerText = `₹${grandTotal}`);
+
+      const discountRow = document.getElementById('bill-discount-row');
+      const discountVal = document.getElementById('bill-discount-val');
+      if (activeDiscount > 0) {
+        discountRow.classList.remove('hidden');
+        discountVal.innerText = `-₹${activeDiscount}`;
+      } else {
+        discountRow.classList.add('hidden');
+      }
+
+      const proceedBtn = document.getElementById('proceed-pay-btn');
+      proceedBtn.disabled = totalCount === 0;
+
+      renderCartDrawerItems();
+    }
+
+    function renderCartDrawerItems() {
+      const container = document.getElementById('cart-items-container');
+      const itemIds = Object.keys(cart);
+
+      if (itemIds.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 flex flex-col items-center justify-center text-center p-6 text-gray-400">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-400">
+              <i data-lucide="shopping-bag" class="w-8 h-8"></i>
+            </div>
+            <h4 class="font-black text-gray-700 text-base">Your cart is empty</h4>
+            <p class="text-xs text-gray-400 mt-1 max-w-[200px]">Add grocery items you love and get delivery in 10 minutes</p>
+            <button onclick="closeCart()" class="mt-4 px-4 py-2 bg-blinkGreen text-white text-xs font-bold rounded-xl hover:bg-blinkGreenDark cursor-pointer">
+              Start Shopping
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = itemIds.map(id => {
+        const product = PRODUCTS.find(p => p.id === parseInt(id));
+        if (!product) return '';
+        const qty = cart[id];
+        const lineTotal = product.price * qty;
+
+        return `
+          <div class="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-3">
+            <img 
+              src="${product.image}" 
+              alt="${product.name}" 
+              onerror="this.onerror=null; this.src='${getFallbackImg(product.name)}'" 
+              class="w-14 h-14 object-cover rounded-xl bg-gray-50 shrink-0"
+            />
+            <div class="flex-1 min-w-0">
+              <h5 class="text-xs font-bold text-gray-800 truncate">${product.name}</h5>
+              <div class="text-[11px] text-gray-400">${product.unit}</div>
+              <div class="text-xs font-extrabold text-gray-900 mt-0.5">₹${lineTotal} <span class="text-[10px] font-normal text-gray-400">(₹${product.price} each)</span></div>
+            </div>
+
+            <div class="flex items-center bg-blinkGreen text-white rounded-lg font-bold text-xs">
+              <button onclick="decrementItem(${product.id})" class="px-2 py-1 hover:bg-blinkGreenDark transition-colors cursor-pointer">
+                <i data-lucide="minus" class="w-3 h-3"></i>
+              </button>
+              <span class="px-2 font-black text-xs">${qty}</span>
+              <button onclick="incrementItem(${product.id})" class="px-2 py-1 hover:bg-blinkGreenDark transition-colors cursor-pointer">
+                <i data-lucide="plus" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+  </script>
+
+  <script>
+    function switchPaymentTab(tabId) {
+      document.querySelectorAll('.payment-tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-tab') === tabId) {
+          btn.className = "payment-tab-btn active w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all bg-white text-gray-900 shadow-sm border border-gray-200 cursor-pointer";
+        } else {
+          btn.className = "payment-tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-all text-gray-600 hover:bg-white/60 hover:text-gray-900 cursor-pointer";
+        }
+      });
+
+      document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.add('hidden');
+      });
+
+      const activePane = document.getElementById(`tab-content-${tabId}`);
+      if (activePane) activePane.classList.remove('hidden');
+    }
+
+    const proceedPayBtn = document.getElementById('proceed-pay-btn');
+    const paymentModal = document.getElementById('payment-modal');
+    const closeGatewayBtn = document.getElementById('close-gateway-btn');
+
+    proceedPayBtn.addEventListener('click', () => {
+      // Validate customer info with strict checks
+      const custName = document.getElementById('cust-name-input').value.trim();
+      const custPhone = document.getElementById('cust-phone-input').value.trim();
+      const custAddress = document.getElementById('cust-address-input').value.trim();
+      const errorBox = document.getElementById('cust-form-error');
+      const errorText = document.getElementById('cust-form-error-text');
+
+      if (!custName) {
+        errorBox.classList.remove('hidden');
+        errorText.innerText = "Please enter your Full Name.";
+        document.getElementById('cust-name-input').focus();
+        lucide.createIcons();
+        return;
+      }
+
+      const cleanPhone = custPhone.replace(/\D/g, '');
+      if (cleanPhone.length !== 10) {
+        errorBox.classList.remove('hidden');
+        errorText.innerText = "Please enter a valid 10-digit WhatsApp / Phone number.";
+        document.getElementById('cust-phone-input').focus();
+        lucide.createIcons();
+        return;
+      }
+
+      if (!custAddress) {
+        errorBox.classList.remove('hidden');
+        errorText.innerText = "Please enter your Delivery Address.";
+        document.getElementById('cust-address-input').focus();
+        lucide.createIcons();
+        return;
+      }
+
+      errorBox.classList.add('hidden');
+      closeCart();
+      paymentModal.classList.remove('hidden');
+    });
+
+    closeGatewayBtn.addEventListener('click', () => {
+      paymentModal.classList.add('hidden');
+    });
+
+    const cardNumberInput = document.getElementById('card-number-input');
+    cardNumberInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/\D/g, '').substring(0, 16);
+      val = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+      e.target.value = val;
+    });
+
+    const cardExpiryInput = document.getElementById('card-expiry-input');
+    cardExpiryInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/\D/g, '').substring(0, 4);
+      if (val.length >= 2) {
+        val = val.substring(0, 2) + '/' + val.substring(2);
+      }
+      e.target.value = val;
+    });
+
+    function selectUpiApp(appName) {
+      startPaymentProcessing(`UPI App: ${appName}`);
+    }
+
+    function verifyAndPayUpi() {
+      const vpa = document.getElementById('vpa-input').value.trim();
+      if (!vpa || !vpa.includes('@')) {
+        alert("Please enter a valid UPI VPA (e.g. mobile@oksbi)");
+        return;
+      }
+      startPaymentProcessing(`UPI VPA (${vpa})`);
+    }
+
+    function submitCardPayment() {
+      currentPayMethodPending = "Debit/Credit Card";
+      paymentModal.classList.add('hidden');
+      document.getElementById('otp-modal').classList.remove('hidden');
+    }
+
+    function payWithSelectedBank() {
+      const sel = document.getElementById('other-banks-select').value;
+      if (!sel) {
+        alert("Please select a bank first.");
+        return;
+      }
+      startPaymentProcessing(`Net Banking (${sel})`);
+    }
+
+    function confirmCodOrder() {
+      paymentModal.classList.add('hidden');
+      completeSuccessfulOrder("Cash on Delivery (Pay at Doorstep)");
+    }
+
+    document.getElementById('cancel-otp-btn').addEventListener('click', () => {
+      document.getElementById('otp-modal').classList.add('hidden');
+      paymentModal.classList.remove('hidden');
+    });
+
+    document.getElementById('submit-otp-btn').addEventListener('click', () => {
+      const otp = document.getElementById('otp-input').value.trim();
+      if (otp.length < 4) {
+        alert("Please enter the 6-digit OTP");
+        return;
+      }
+      document.getElementById('otp-modal').classList.add('hidden');
+      startPaymentProcessing("Card Authorized via 3D Secure");
+    });
+
+    function startPaymentProcessing(methodTitle) {
+      paymentModal.classList.add('hidden');
+      const procModal = document.getElementById('processing-modal');
+      const stepTitle = document.getElementById('processing-step-title');
+      const stepSub = document.getElementById('processing-step-sub');
+      const authCode = document.getElementById('processing-auth-code');
+
+      authCode.innerText = `REF: BLK-${Math.floor(100000 + Math.random() * 900000)}`;
+      procModal.classList.remove('hidden');
+      stepTitle.innerText = `Connecting with ${methodTitle}...`;
+      stepSub.innerText = "Securing 256-bit payment pipeline...";
+
+      const outcome = document.querySelector('input[name="payment_sim_result"]:checked').value;
+
+      setTimeout(() => {
+        stepTitle.innerText = "Authorizing transaction with Bank...";
+      }, 900);
+
+      setTimeout(() => {
+        procModal.classList.add('hidden');
+        if (outcome === 'failure') {
+          document.getElementById('payment-failure-modal').classList.remove('hidden');
+        } else {
+          completeSuccessfulOrder(methodTitle);
+        }
+      }, 1900);
+    }
+
+    document.getElementById('retry-payment-btn').addEventListener('click', () => {
+      document.getElementById('payment-failure-modal').classList.add('hidden');
+      paymentModal.classList.remove('hidden');
+    });
+
+    document.getElementById('close-failure-btn').addEventListener('click', () => {
+      document.getElementById('payment-failure-modal').classList.add('hidden');
+      openCart();
+    });
+  </script>
+
+  <script>
+    // Build and save order snapshot for WhatsApp dispatch
+    function recordOrderSnapshot(methodName) {
+      const { subtotal, deliveryFee, activeDiscount, grandTotal } = calculateGrandTotal();
+      
+      const itemsList = [];
+      Object.keys(cart).forEach(id => {
+        const product = PRODUCTS.find(p => p.id === parseInt(id));
+        if (product) {
+          itemsList.push({
+            name: product.name,
+            qty: cart[id],
+            unitPrice: product.price,
+            total: product.price * cart[id]
+          });
+        }
+      });
+
+      const customerName = document.getElementById('cust-name-input').value.trim();
+      const customerPhone = document.getElementById('cust-phone-input').value.trim();
+      const customerEmail = document.getElementById('cust-email-input').value.trim() || "Not provided";
+      const customerAddress = document.getElementById('cust-address-input').value.trim();
+      const orderId = `BLK-${Math.floor(10000 + Math.random() * 90000)}`;
+      const paymentRef = `pay_Ok${Math.random().toString(36).substring(2, 7)}x${Math.floor(1000 + Math.random() * 9000)}`;
+
+      lastOrderSnapshot = {
+        orderId,
+        paymentRef,
+        methodName,
+        customerName,
+        customerPhone,
+        customerEmail,
+        customerAddress,
+        items: itemsList,
+        subtotal,
+        deliveryFee,
+        discount: activeDiscount,
+        handlingFee: HANDLING_FEE,
+        grandTotal,
+        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      return lastOrderSnapshot;
+    }
+
+    // Format WhatsApp message for Store Owner
+    function generateStoreOwnerWhatsAppMessage(snap) {
+      let itemsText = snap.items.map((it, idx) => `  ${idx + 1}. *${it.name}* x ${it.qty} = ₹${it.total}`).join('\n');
+
+      return `🚨 *NEW BLINKIT ORDER RECEIVED!*
+──────────────────────
+📦 *Order ID:* ${snap.orderId}
+🕒 *Time:* ${snap.date}
+💳 *Payment Mode:* ${snap.methodName}
+🔐 *Payment Ref:* ${snap.paymentRef}
+
+👤 *CUSTOMER DETAILS:*
+• *Name:* ${snap.customerName}
+• *Phone:* ${snap.customerPhone}
+• *Email:* ${snap.customerEmail}
+📍 *Address:* ${snap.customerAddress}
+
+🛒 *ORDERED ITEMS:*
+${itemsText}
+
+💰 *BILL BREAKDOWN:*
+• Items Total: ₹${snap.subtotal}
+• Delivery Fee: ${snap.deliveryFee === 0 ? 'FREE' : '₹' + snap.deliveryFee}
+• Handling: ₹${snap.handlingFee}
+${snap.discount > 0 ? `• Discount: -₹${snap.discount}\n` : ''}• *GRAND TOTAL:* *₹${snap.grandTotal}*
+──────────────────────
+⚡ *Action:* Please pack items for 10-minute dispatch!`;
+    }
+
+    // Format WhatsApp confirmation message for Customer
+    function generateCustomerWhatsAppMessage(snap) {
+      let itemsText = snap.items.map(it => `• ${it.name} (${it.qty} pcs) - ₹${it.total}`).join('\n');
+
+      return `✅ *BLINKIT ORDER CONFIRMED!*
+Hi *${snap.customerName}*, your express 10-minute grocery order has been confirmed!
+
+📦 *Order ID:* ${snap.orderId}
+🕒 *Estimated Delivery:* 10-12 Mins
+💳 *Payment:* ${snap.methodName} (Paid: ₹${snap.grandTotal})
+
+🛒 *Your Items:*
+${itemsText}
+
+📍 *Delivering to:*
+${snap.customerAddress}
+
+🛵 *Live Tracking:* Dark store is packing your items now! Our EV rider Ramesh will reach your doorstep shortly. Thank you for shopping with Blinkit!`;
+    }
+
+    // MANDATORY TRIGGER: Trigger Owner WhatsApp Alert & Unlock Customer Pipeline
+    function triggerOwnerWhatsAppAlert() {
+      if (!lastOrderSnapshot) return;
+      const text = encodeURIComponent(generateStoreOwnerWhatsAppMessage(lastOrderSnapshot));
+      const ownerNumber = storeOwnerConfig.phone.replace(/\D/g, '');
+      const waUrl = `https://wa.me/${ownerNumber}?text=${text}`;
+      
+      // Open WhatsApp for Owner Alert (Directly uses configured store phone without showing it on UI)
+      window.open(waUrl, '_blank');
+
+      // UNLOCK THE PIPELINE & CUSTOMER RECEIPT!
+      unlockCustomerOrderPipeline();
+    }
+
+    // Unlocks the UI once owner alert is fired
+    function unlockCustomerOrderPipeline() {
+      if (isOwnerAlertDispatched) return;
+      isOwnerAlertDispatched = true;
+
+      // Update Owner Gate Box to Verified / Unlocked (clean, professional status)
+      const gateBox = document.getElementById('owner-alert-gate');
+      const gateBadge = document.getElementById('gate-badge');
+      const gateHeader = document.getElementById('gate-header-title');
+      const gateDesc = document.getElementById('gate-description');
+      const gateIcon = document.getElementById('gate-shield-icon');
+      const ownerBtnText = document.getElementById('owner-wa-btn-text');
+
+      gateBox.className = "rounded-2xl p-4 border-2 transition-all duration-300 bg-emerald-50 border-emerald-300 shadow-sm space-y-3";
+      gateHeader.innerText = "Step 1: Order Dispatched to Dark Store";
+      gateDesc.innerHTML = "✅ Store team notified on WhatsApp! Dark store warehouse has begun packing. <b>Order tracking and customer receipt are now unlocked.</b>";
+      gateBadge.className = "bg-emerald-200 text-emerald-900 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1";
+      gateBadge.innerHTML = '<i data-lucide="check-circle" class="w-3 h-3 text-emerald-800"></i> Dispatched & Active';
+      gateIcon.setAttribute('data-lucide', 'check-check');
+      ownerBtnText.innerText = "Dispatched (Resend If Needed)";
+
+      // Unlock Process Wrapper
+      const wrapper = document.getElementById('locked-process-wrapper');
+      wrapper.classList.remove('opacity-40', 'blur-[1.5px]', 'pointer-events-none', 'select-none');
+
+      // Hide Lock Overlay Banner
+      const lockOverlay = document.getElementById('lock-overlay-badge');
+      if (lockOverlay) lockOverlay.classList.add('hidden');
+
+      // Enable Customer WhatsApp Receipt Button
+      const custBtn = document.getElementById('send-customer-wa-btn');
+      custBtn.removeAttribute('disabled');
+      custBtn.classList.remove('disabled:opacity-40', 'disabled:cursor-not-allowed');
+
+      // Update ETA Badge & Start Live Countdown
+      const etaBadge = document.getElementById('eta-status-badge');
+      etaBadge.className = "px-2.5 py-1 bg-blinkGreen/10 text-blinkGreen font-extrabold text-[11px] rounded-full";
+      etaBadge.innerText = "Packing In Progress";
+
+      // Launch countdown and sequential dispatch stages
+      startLiveTrackingStages();
+      lucide.createIcons();
+    }
+
+    // Trigger Customer WhatsApp Receipt
+    function triggerCustomerWhatsAppReceipt() {
+      if (!isOwnerAlertDispatched) {
+        alert("Action Required: Please dispatch the order to the dark store team first!");
+        return;
+      }
+      if (!lastOrderSnapshot) return;
+      const text = encodeURIComponent(generateCustomerWhatsAppMessage(lastOrderSnapshot));
+      let custNumber = lastOrderSnapshot.customerPhone.replace(/\D/g, '');
+      if (custNumber.length === 10) custNumber = '91' + custNumber;
+      const waUrl = `https://wa.me/${custNumber}?text=${text}`;
+      window.open(waUrl, '_blank');
+    }
+
+    // Complete order logic
+    function completeSuccessfulOrder(methodName) {
+      const snap = recordOrderSnapshot(methodName);
+
+      const orderTrackingModal = document.getElementById('order-tracking-modal');
+      const successPayId = document.getElementById('success-payment-id');
+      const confirmedOrderNumber = document.getElementById('confirmed-order-number');
+      const trackingAddressText = document.getElementById('tracking-address-text');
+      const confirmedPayMethod = document.getElementById('confirmed-pay-method');
+      const customerPhoneDisplay = document.getElementById('customer-phone-display');
+
+      successPayId.innerText = snap.paymentRef;
+      confirmedOrderNumber.innerText = snap.orderId;
+      confirmedPayMethod.innerText = snap.methodName;
+      trackingAddressText.innerText = snap.customerAddress;
+      customerPhoneDisplay.innerText = `+91 ${snap.customerPhone}`;
+
+      orderTrackingModal.classList.remove('hidden');
+
+      // Reset to LOCKED STATE until owner is notified
+      isOwnerAlertDispatched = false;
+      resetTrackingTimelineToLockedState();
+
+      // Reset Cart
+      cart = {};
+      couponDiscount = 0;
+      document.getElementById('coupon-input').value = '';
+      document.getElementById('coupon-status').classList.add('hidden');
+      
+      // Clear Customer Details fields for new orders
+      document.getElementById('cust-name-input').value = '';
+      document.getElementById('cust-phone-input').value = '';
+      document.getElementById('cust-email-input').value = '';
+      document.getElementById('cust-address-input').value = '';
+
+      updateCartUI();
+      renderProducts();
+    }
+
+    function resetTrackingTimelineToLockedState() {
+      // Clear any previous countdown
+      if (liveCountdownInterval) clearInterval(liveCountdownInterval);
+
+      // Reset Gate
+      const gateBox = document.getElementById('owner-alert-gate');
+      const gateBadge = document.getElementById('gate-badge');
+      const gateHeader = document.getElementById('gate-header-title');
+      const gateDesc = document.getElementById('gate-description');
+      const gateIcon = document.getElementById('gate-shield-icon');
+      const ownerBtnText = document.getElementById('owner-wa-btn-text');
+
+      gateBox.className = "rounded-2xl p-4 border-2 transition-all duration-300 bg-amber-50/90 border-amber-300 shadow-sm space-y-3";
+      gateHeader.innerText = "Step 1: Dispatch Order to Store";
+      gateDesc.innerHTML = "Please dispatch your verified invoice to the dark store team via WhatsApp to start packaging your items immediately. <b>Live rider tracking & personal receipt remain locked until sent.</b>";
+      gateBadge.className = "bg-amber-200 text-amber-900 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse";
+      gateBadge.innerHTML = '<i data-lucide="lock" class="w-3 h-3"></i> Action Required';
+      gateIcon.setAttribute('data-lucide', 'shield-alert');
+      ownerBtnText.innerText = "Send Alert on WhatsApp";
+
+      // Lock Process Wrapper
+      const wrapper = document.getElementById('locked-process-wrapper');
+      wrapper.className = "space-y-4 relative transition-all duration-300 opacity-40 blur-[1.5px] pointer-events-none select-none";
+
+      const lockOverlay = document.getElementById('lock-overlay-badge');
+      if (lockOverlay) lockOverlay.classList.remove('hidden');
+
+      // Disable Customer Button
+      const custBtn = document.getElementById('send-customer-wa-btn');
+      custBtn.setAttribute('disabled', 'true');
+      custBtn.classList.add('disabled:opacity-40', 'disabled:cursor-not-allowed');
+
+      // Reset Timer & Status Badge
+      document.getElementById('live-countdown-timer').innerText = "Waiting for store alert...";
+      const etaBadge = document.getElementById('eta-status-badge');
+      etaBadge.className = "px-2.5 py-1 bg-gray-200 text-gray-600 font-extrabold text-[11px] rounded-full";
+      etaBadge.innerText = "Waiting";
+
+      // Reset pipeline icons
+      const packIcon = document.getElementById('track-step-pack-icon');
+      const packLine = document.getElementById('track-step-pack-line');
+      const packTitle = document.getElementById('track-step-pack-title');
+      const packSub = document.getElementById('track-step-pack-sub');
+
+      packIcon.className = "w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs font-bold shadow-sm";
+      packIcon.innerHTML = '<i data-lucide="package" class="w-3.5 h-3.5"></i>';
+      packLine.className = "w-0.5 h-5 bg-gray-200 my-1";
+      packTitle.innerText = "Items being packed at Darkstore";
+      packSub.innerText = "Picker awaiting store alert confirmation";
+
+      const riderIcon = document.getElementById('track-step-rider-icon');
+      const riderLine = document.getElementById('track-step-rider-line');
+      const riderTitle = document.getElementById('track-step-rider-title');
+      const riderSub = document.getElementById('track-step-rider-sub');
+
+      riderIcon.className = "w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs font-bold shadow-sm";
+      riderIcon.innerHTML = '<i data-lucide="user-check" class="w-3.5 h-3.5"></i>';
+      riderLine.className = "w-0.5 h-5 bg-gray-200 my-1";
+      riderTitle.className = "text-xs font-extrabold text-gray-400";
+      riderTitle.innerText = "Delivery partner assigned";
+      riderSub.className = "text-[11px] text-gray-400";
+
+      const dispatchIcon = document.getElementById('track-step-dispatch-icon');
+      const dispatchTitle = document.getElementById('track-step-dispatch-title');
+      const dispatchSub = document.getElementById('track-step-dispatch-sub');
+
+      dispatchIcon.className = "w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-xs font-bold shadow-sm";
+      dispatchIcon.innerHTML = '<i data-lucide="bike" class="w-3.5 h-3.5"></i>';
+      dispatchTitle.className = "text-xs font-extrabold text-gray-400";
+      dispatchTitle.innerText = "Out for delivery";
+      dispatchSub.className = "text-[11px] text-gray-400";
+
+      document.getElementById('rider-profile-snippet').classList.add('hidden');
+      lucide.createIcons();
+    }
+
+    function startLiveTrackingStages() {
+      let secondsLeft = 595;
+      const timerDisplay = document.getElementById('live-countdown-timer');
+      
+      if (liveCountdownInterval) clearInterval(liveCountdownInterval);
+
+      // Start packing animation immediately once unlocked
+      const packIcon = document.getElementById('track-step-pack-icon');
+      const packTitle = document.getElementById('track-step-pack-title');
+      const packSub = document.getElementById('track-step-pack-sub');
+      packIcon.className = "w-7 h-7 rounded-full bg-blinkYellow text-black flex items-center justify-center text-xs font-bold shadow-sm animate-pulse";
+      packIcon.innerHTML = '<i data-lucide="package" class="w-3.5 h-3.5"></i>';
+      packTitle.className = "text-xs font-extrabold text-gray-900";
+      packTitle.innerText = "Items being packed at Darkstore";
+      packSub.className = "text-[11px] text-gray-500";
+      packSub.innerText = "Store team confirmed order dispatch! Hub picker is bagging fresh items";
+      lucide.createIcons();
+
+      liveCountdownInterval = setInterval(() => {
+        secondsLeft--;
+        const m = Math.floor(secondsLeft / 60);
+        const s = secondsLeft % 60;
+        timerDisplay.innerText = `${m} mins ${s < 10 ? '0' : ''}${s} secs`;
+
+        if (secondsLeft === 585) {
+          const packIcon = document.getElementById('track-step-pack-icon');
+          const packLine = document.getElementById('track-step-pack-line');
+          packIcon.className = "w-7 h-7 rounded-full bg-blinkGreen text-white flex items-center justify-center text-xs font-bold shadow-sm";
+          packIcon.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>';
+          packLine.className = "w-0.5 h-5 bg-blinkGreen my-1";
+
+          const riderIcon = document.getElementById('track-step-rider-icon');
+          const riderTitle = document.getElementById('track-step-rider-title');
+          const riderSub = document.getElementById('track-step-rider-sub');
+          riderIcon.className = "w-7 h-7 rounded-full bg-blinkYellow text-black flex items-center justify-center text-xs font-bold shadow-sm animate-pulse";
+          riderTitle.className = "text-xs font-extrabold text-gray-900";
+          riderTitle.innerText = "Ramesh Kumar assigned";
+          riderSub.className = "text-[11px] text-gray-500";
+          riderSub.innerText = "Rider verified with insulated delivery bag";
+
+          document.getElementById('rider-profile-snippet').classList.remove('hidden');
+          lucide.createIcons();
+        }
+
+        if (secondsLeft === 575) {
+          const riderIcon = document.getElementById('track-step-rider-icon');
+          const riderLine = document.getElementById('track-step-rider-line');
+          riderIcon.className = "w-7 h-7 rounded-full bg-blinkGreen text-white flex items-center justify-center text-xs font-bold shadow-sm";
+          riderIcon.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>';
+          riderLine.className = "w-0.5 h-5 bg-blinkGreen my-1";
+
+          const dispatchIcon = document.getElementById('track-step-dispatch-icon');
+          const dispatchTitle = document.getElementById('track-step-dispatch-title');
+          const dispatchSub = document.getElementById('track-step-dispatch-sub');
+
+          dispatchIcon.className = "w-7 h-7 rounded-full bg-blinkGreen text-white flex items-center justify-center text-xs font-bold shadow-sm animate-bounce";
+          dispatchTitle.className = "text-xs font-extrabold text-blinkGreen";
+          dispatchTitle.innerText = "Ramesh is on his way! 🛵";
+          dispatchSub.className = "text-[11px] text-gray-600 font-bold";
+          dispatchSub.innerText = "Speeding on electric scooter (2.1 km away)";
+          lucide.createIcons();
+        }
+
+        if (secondsLeft <= 0) {
+          clearInterval(liveCountdownInterval);
+        }
+      }, 1000);
+    }
+
+    document.getElementById('close-tracking-btn').addEventListener('click', () => {
+      document.getElementById('order-tracking-modal').classList.add('hidden');
+      if (liveCountdownInterval) clearInterval(liveCountdownInterval);
+    });
+
+    // Wire WhatsApp Trigger Buttons
+    document.getElementById('send-owner-wa-btn').addEventListener('click', triggerOwnerWhatsAppAlert);
+    document.getElementById('send-customer-wa-btn').addEventListener('click', triggerCustomerWhatsAppReceipt);
+  </script>
+
+  <script>
+    function openCart() {
+      const drawer = document.getElementById('cart-drawer');
+      const overlay = document.getElementById('cart-drawer-overlay');
+      drawer.classList.remove('translate-x-full');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeCart() {
+      const drawer = document.getElementById('cart-drawer');
+      const overlay = document.getElementById('cart-drawer-overlay');
+      drawer.classList.add('translate-x-full');
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function setCategory(catId) {
+      activeCategory = catId;
+      renderCategoryPills();
+      renderProducts();
+    }
+
+    // Coupon logic
+    document.getElementById('apply-coupon-btn').addEventListener('click', () => {
+      const input = document.getElementById('coupon-input');
+      const code = input.value.trim().toUpperCase();
+      const status = document.getElementById('coupon-status');
+
+      if (code === 'BLINK10') {
+        couponDiscount = 50;
+        status.classList.remove('hidden');
+        status.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Coupon BLINK10 applied! ₹50 saved.`;
+        updateCartUI();
+        lucide.createIcons();
+      } else {
+        couponDiscount = 0;
+        status.classList.remove('hidden');
+        status.innerHTML = `<span class="text-rose-600 font-bold">Invalid coupon! Try BLINK10</span>`;
+        updateCartUI();
+      }
+    });
+
+    // Search input
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+    const searchDropdown = document.getElementById('search-dropdown');
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      if (searchQuery.length > 0) {
+        clearSearchBtn.classList.remove('hidden');
+        showSearchSuggestions(searchQuery);
+      } else {
+        clearSearchBtn.classList.add('hidden');
+        searchDropdown.classList.add('hidden');
+      }
+      renderProducts();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      clearSearchBtn.classList.add('hidden');
+      searchDropdown.classList.add('hidden');
+      renderProducts();
+    });
+
+    function showSearchSuggestions(query) {
+      const lower = query.toLowerCase();
+      const matches = PRODUCTS.filter(p => p.name.toLowerCase().includes(lower)).slice(0, 4);
+
+      if (matches.length === 0) {
+        searchDropdown.classList.add('hidden');
+        return;
+      }
+
+      searchDropdown.innerHTML = `
+        <div class="p-2 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Quick Suggestions</div>
+        ${matches.map(item => `
+          <div 
+            class="flex items-center gap-3 p-2.5 hover:bg-gray-50 cursor-pointer transition-colors"
+            onclick="selectSuggestion('${escapeHtml(item.name)}')"
+          >
+            <img src="${item.image}" alt="" class="w-8 h-8 rounded-lg object-cover bg-gray-50">
+            <div class="flex-1 truncate">
+              <div class="text-xs font-bold text-gray-800 truncate">${item.name}</div>
+              <div class="text-[10px] text-gray-400">₹${item.price} • ${item.unit}</div>
+            </div>
+            <i data-lucide="corner-down-left" class="w-3.5 h-3.5 text-gray-300"></i>
+          </div>
+        `).join('')}
+      `;
+      searchDropdown.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function selectSuggestion(name) {
+      searchInput.value = name;
+      searchQuery = name;
+      searchDropdown.classList.add('hidden');
+      renderProducts();
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+        searchDropdown.classList.add('hidden');
+      }
+    });
+
+    document.getElementById('reset-filter-btn').addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      clearSearchBtn.classList.add('hidden');
+      activeCategory = 'all';
+      renderCategoryPills();
+      renderProducts();
+    });
+
+    document.getElementById('empty-state-reset').addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      clearSearchBtn.classList.add('hidden');
+      activeCategory = 'all';
+      renderCategoryPills();
+      renderProducts();
+    });
+
+    // Location Dialog
+    const locationBtn = document.getElementById('location-btn');
+    const mobileLocTrigger = document.getElementById('mobile-location-trigger');
+    const locationModal = document.getElementById('location-modal');
+    const closeLocationModal = document.getElementById('close-location-modal');
+
+    function openLocationPicker() {
+      locationModal.classList.remove('hidden');
+    }
+    locationBtn.addEventListener('click', openLocationPicker);
+    mobileLocTrigger.addEventListener('click', openLocationPicker);
+    closeLocationModal.addEventListener('click', () => locationModal.classList.add('hidden'));
+
+    document.querySelectorAll('.location-choice').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newAddr = btn.getAttribute('data-addr');
+        document.getElementById('current-location-text').innerText = newAddr;
+        document.getElementById('mobile-location-text').innerText = newAddr;
+        const custAddr = document.getElementById('cust-address-input');
+        if (custAddr && !custAddr.value.trim()) {
+          custAddr.value = newAddr;
+        }
+        locationModal.classList.add('hidden');
+      });
+    });
+
+    // STORE OWNER ACCESS VIA DOUBLE-CLICK LOGO & PIN GUARD
+    const adminLogoTrigger = document.getElementById('admin-logo-trigger');
+    const adminPinModal = document.getElementById('admin-pin-modal');
+    const adminPinInput = document.getElementById('admin-pin-input');
+    const verifyPinBtn = document.getElementById('verify-pin-btn');
+    const cancelPinBtn = document.getElementById('cancel-pin-btn');
+    const pinErrorMsg = document.getElementById('pin-error-msg');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+    // Double click logo to open admin prompt
+    adminLogoTrigger.addEventListener('dblclick', () => {
+      adminPinInput.value = '';
+      pinErrorMsg.classList.add('hidden');
+      adminPinModal.classList.remove('hidden');
+      adminPinInput.focus();
+    });
+
+    cancelPinBtn.addEventListener('click', () => {
+      adminPinModal.classList.add('hidden');
+      adminPinInput.value = '';
+      pinErrorMsg.classList.add('hidden');
+    });
+
+    verifyPinBtn.addEventListener('click', () => {
+      const enteredPin = adminPinInput.value.trim();
+      if (enteredPin === storeOwnerConfig.adminPin) {
+        pinErrorMsg.classList.add('hidden');
+        adminPinModal.classList.add('hidden');
+        adminPinInput.value = '';
+        openSettings();
+      } else {
+        pinErrorMsg.classList.remove('hidden');
+        adminPinInput.value = '';
+        adminPinInput.focus();
+      }
+    });
+
+    adminPinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        verifyPinBtn.click();
+      }
+    });
+
+    function openSettings() {
+      const phoneInput = document.getElementById('owner-phone-input');
+      const emailInput = document.getElementById('owner-email-input');
+      const pinInput = document.getElementById('owner-pin-input');
+      const settingsModalEl = document.getElementById('settings-modal');
+
+      if (phoneInput) phoneInput.value = storeOwnerConfig.phone;
+      if (emailInput) emailInput.value = storeOwnerConfig.email;
+      if (pinInput) pinInput.value = storeOwnerConfig.adminPin;
+      if (settingsModalEl) settingsModalEl.classList.remove('hidden');
+    }
+
+    if (closeSettingsBtn) {
+      closeSettingsBtn.addEventListener('click', () => {
+        const settingsModalEl = document.getElementById('settings-modal');
+        if (settingsModalEl) settingsModalEl.classList.add('hidden');
+      });
+    }
+
+    if (saveSettingsBtn) {
+      saveSettingsBtn.addEventListener('click', () => {
+        const ph = document.getElementById('owner-phone-input')?.value.trim();
+        const em = document.getElementById('owner-email-input')?.value.trim();
+        const pin = document.getElementById('owner-pin-input')?.value.trim();
+        const settingsModalEl = document.getElementById('settings-modal');
+
+        if (!ph || !em) {
+          alert("Please enter a valid owner phone and email.");
+          return;
+        }
+        storeOwnerConfig.phone = ph;
+        storeOwnerConfig.email = em;
+        if (pin && pin.length >= 4) {
+          storeOwnerConfig.adminPin = pin;
+        }
+        if (settingsModalEl) settingsModalEl.classList.add('hidden');
+        alert("Store configuration saved successfully!");
+      });
+    }
+
+    // Drawer Toggles
+    document.getElementById('open-cart-btn').addEventListener('click', openCart);
+    document.getElementById('close-cart-btn').addEventListener('click', closeCart);
+    document.getElementById('cart-drawer-overlay').addEventListener('click', closeCart);
+
+    // Initial App Boot
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCategoryPills();
+      renderProducts();
+      updateCartUI();
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
